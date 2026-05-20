@@ -71,6 +71,7 @@ class _AccountScreenState extends State<AccountScreen> {
           actions: [
             TextButton(
               onPressed: () {
+                final photoBloc = this.context.read<PhotoBloc>();
                 Navigator.of(context).pop();
                 Navigator.push(
                   context,
@@ -80,8 +81,8 @@ class _AccountScreenState extends State<AccountScreen> {
                     ),
                   ),
                 ).then((_) {
-                  if (isSellSelected) {
-                    context.read<PhotoBloc>().add(ListPhotoEvent());
+                  if (mounted && isSellSelected) {
+                    photoBloc.add(ListPhotoEvent());
                   }
                 });
               },
@@ -89,6 +90,7 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
             TextButton(
               onPressed: () {
+                final photoBloc = this.context.read<PhotoBloc>();
                 Navigator.of(context).pop();
                 Navigator.push(
                   context,
@@ -103,8 +105,8 @@ class _AccountScreenState extends State<AccountScreen> {
                     ),
                   ),
                 ).then((_) {
-                  if (!isSellSelected) {
-                    context.read<PhotoBloc>().add(ListPhotoEvent());
+                  if (mounted && !isSellSelected) {
+                    photoBloc.add(ListPhotoEvent());
                   }
                 });
               },

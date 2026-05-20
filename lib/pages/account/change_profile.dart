@@ -68,30 +68,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         title: const Text(
           'Edit Profile',
-          style:
-          TextStyle(color: DisColors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(color: DisColors.black, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
       resizeToAvoidBottomInset: false,
       body: BlocConsumer<UserBloc, UserState>(
         listener: (context, state) {
+          if (!mounted) {
+            return;
+          }
+
           if (state is UserSuccess) {
             if (state.data!['data'] == true) {
-              DisHelperFunctions.navigateToRoute(context, '/login');
-            }
-            else {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  DisHelperFunctions.navigateToRoute(context, '/login');
+                }
+              });
+            } else {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.message ?? 'Success'), backgroundColor: DisColors.success),
+                SnackBar(
+                    content: Text(state.message ?? 'Success'),
+                    backgroundColor: DisColors.success),
               );
             }
           } else if (state is UserFailure) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: DisColors.error),
+              SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: DisColors.error),
             );
           }
         },
         builder: (context, state) {
+          final isLoading = state is UserLoading;
+
           if (state is UserLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -111,7 +123,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             radius: 50,
                             backgroundImage: widget.user.photo != null
                                 ? NetworkImage(widget.user.photo!)
-                                : const AssetImage('assets/images/no_profile.jpeg')
+                                : const AssetImage(
+                                        'assets/images/no_profile.jpeg')
                                     as ImageProvider,
                           ),
                           GestureDetector(
@@ -134,8 +147,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       _buildTextFormField(
                           _emailController, 'Email', _emailFocusNode),
                       const SizedBox(height: 16),
-                      _buildTextFormField(_usernameController, 'Username',
-                          _usernameFocusNode),
+                      _buildTextFormField(
+                          _usernameController, 'Username', _usernameFocusNode),
                       const SizedBox(height: 16),
                       _buildTextFormField(
                           _phoneController, 'Phone Number', _phoneFocusNode),
@@ -153,10 +166,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                           const SizedBox(width: 16),
                           ElevatedButton(
-                            onPressed: () {
-                              Navigator.pushReplacementNamed(
-                                  context, '/change-password');
-                            },
+                            onPressed: isLoading
+                                ? null
+                                : () {
+                                    Navigator.pushReplacementNamed(
+                                        context, '/change-password');
+                                  },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: DisColors.primary,
                               padding: const EdgeInsets.symmetric(
@@ -176,11 +191,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       Align(
                         alignment: Alignment.centerLeft,
                         child: TextButton.icon(
-                          onPressed: () {
-                            _showLogoutConfirmationDialog(context);
-                          },
-                          icon: const Icon(Icons.logout,
-                              color: DisColors.error),
+                          onPressed: isLoading
+                              ? null
+                              : () {
+                                  _showLogoutConfirmationDialog(context);
+                                },
+                          icon:
+                              const Icon(Icons.logout, color: DisColors.error),
                           label: const Text(
                             'Log Out',
                             style: TextStyle(color: DisColors.error),
@@ -196,9 +213,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      _showSaveConfirmationDialog(context);
-                    },
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            _showSaveConfirmationDialog(context);
+                          },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(16),
                       backgroundColor: DisColors.primary,
@@ -265,14 +284,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text('Cancel', style: TextStyle(color: DisColors.black)),
+              child: const Text('Cancel',
+                  style: TextStyle(color: DisColors.black)),
             ),
             TextButton(
               onPressed: () {
                 context.read<UserBloc>().add(UserLogoutEvent());
                 Navigator.pop(context);
               },
-              child: const Text('Logout', style: TextStyle(color: DisColors.error)),
+              child: const Text('Logout',
+                  style: TextStyle(color: DisColors.error)),
             ),
           ],
         );
@@ -292,18 +313,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text('Cancel', style: TextStyle(color: DisColors.black)),
+              child: const Text('Cancel',
+                  style: TextStyle(color: DisColors.black)),
             ),
             TextButton(
-            onPressed: () {
+              onPressed: () {
                 Navigator.pop(context);
                 context.read<UserBloc>().add(UserUpdateEvent(
-                  name: _nameController.text,
-                  email: _emailController.text,
-                  phone: _phoneController.text,
-                ));
+                      name: _nameController.text,
+                      email: _emailController.text,
+                      phone: _phoneController.text,
+                    ));
               },
-              child: Text('Save', style: TextStyle(color: DisColors.textPrimary)),
+              child:
+                  Text('Save', style: TextStyle(color: DisColors.textPrimary)),
             ),
           ],
         );

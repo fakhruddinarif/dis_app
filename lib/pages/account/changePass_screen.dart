@@ -18,6 +18,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final _currentPasswordFocusNode = FocusNode();
   final _newPasswordFocusNode = FocusNode();
   final _confirmPasswordFocusNode = FocusNode();
+  bool _isLoading = false;
+  ScaffoldMessengerState? _scaffoldMessenger;
+  NavigatorState? _navigator;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
+    _navigator = Navigator.of(context);
+  }
 
   @override
   void dispose() {
@@ -32,57 +42,74 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Change Password',
-          style: TextStyle(color: DisColors.black, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: DisColors.white,
-        elevation: 0.5,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: DisColors.black),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        centerTitle: true,
-      ),
-      body: BlocListener<UserBloc, UserState>(
-        listener: (context, state) {
-          if (state is UserLoading) {
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => const Center(
-                child: CircularProgressIndicator(),
-              ),
-            );
-          } else if (state is UserSuccess) {
-            if (Navigator.canPop(context)) {
-              Navigator.of(context).pop();
+    return BlocConsumer<UserBloc, UserState>(
+      listener: (context, state) {
+        if (!mounted) {
+          return;
+        }
+
+        if (state is UserLoading) {
+          setState(() {
+            _isLoading = true;
+          });
+          return;
+        }
+
+        if (_isLoading) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+
+        if (state is UserSuccess) {
+          _scaffoldMessenger?.showSnackBar(SnackBar(
+            content: Text(state.message ?? 'Password changed successfully!'),
+            backgroundColor: DisColors.success,
+          ));
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              _navigator?.pop();
             }
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(state.message ?? 'Password changed successfully!'),
-              backgroundColor: DisColors.success,
-            ));
-            Navigator.pop(context);
-          } else if (state is UserFailure) {
-            if (Navigator.canPop(context)) {
-              Navigator.of(context).pop();
-            }
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(state.message),
-              backgroundColor: DisColors.error,
-            ));
-          }
-        },
-        child: _buildForm(context),
-      ),
+          });
+        } else if (state is UserFailure) {
+          _scaffoldMessenger?.showSnackBar(SnackBar(
+            content: Text(state.message),
+            backgroundColor: DisColors.error,
+          ));
+        }
+      },
+      builder: (context, state) {
+        final isLoading = state is UserLoading || _isLoading;
+
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              'Change Password',
+              style: TextStyle(
+                  color: DisColors.black, fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: DisColors.white,
+            elevation: 0.5,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: DisColors.black),
+              onPressed: isLoading
+                  ? null
+                  : () {
+                      Navigator.pop(context);
+                    },
+            ),
+            centerTitle: true,
+          ),
+          body: AbsorbPointer(
+            absorbing: isLoading,
+            child: _buildForm(context, isLoading),
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildForm(BuildContext context) {
+  Widget _buildForm(BuildContext context, bool isLoading) {
     return Column(
       children: [
         Expanded(
@@ -109,9 +136,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () {
-                _onSavePassword(context);
-              },
+              onPressed: isLoading ? null : () => _onSavePassword(context),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.all(16),
                 backgroundColor: DisColors.primary,
@@ -119,10 +144,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text(
-                'Save Password',
-                style: TextStyle(color: Colors.black),
-              ),
+              child: isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  : const Text(
+                      'Save Password',
+                      style: TextStyle(color: Colors.black),
+                    ),
             ),
           ),
         ),
@@ -172,7 +203,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final confirmPassword = _confirmPasswordController.text.trim();
 
     if (oldPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      _scaffoldMessenger?.showSnackBar(const SnackBar(
         content: Text('Please fill in all fields'),
         backgroundColor: DisColors.error,
       ));
@@ -180,7 +211,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
 
     if (newPassword != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      _scaffoldMessenger?.showSnackBar(const SnackBar(
         content: Text('New password and confirmation do not match'),
         backgroundColor: DisColors.error,
       ));

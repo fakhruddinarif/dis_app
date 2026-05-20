@@ -38,6 +38,9 @@ class _SearchFaceScreenState extends State<SearchFaceScreen> {
     );
 
     await _controller.initialize();
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _isCameraInitialized = true;
     });
@@ -68,6 +71,10 @@ class _SearchFaceScreenState extends State<SearchFaceScreen> {
       final face = await faceController.addFace(filePath);
       print('Face added successfully: ${face.id}');
 
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _isCapturing = false;
       });
@@ -80,6 +87,10 @@ class _SearchFaceScreenState extends State<SearchFaceScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _isCapturing = false;
       });
@@ -148,7 +159,9 @@ class _SearchFaceScreenState extends State<SearchFaceScreen> {
                     bottom: 40,
                     left: (MediaQuery.of(context).size.width - 150) / 2,
                     child: ElevatedButton(
-                      onPressed: () => _captureAndProcessFace(context),
+                      onPressed: _isCapturing
+                          ? null
+                          : () => _captureAndProcessFace(context),
                       style: ElevatedButton.styleFrom(
                         foregroundColor: DisColors.white,
                         backgroundColor: DisColors.primary,

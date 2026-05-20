@@ -22,12 +22,14 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
   String availableBalance = "IDR 0";
   double currentBalance = 0;
   bool showWarning = true;
+  bool _isNavigatingToConfirm = false;
 
   @override
   void initState() {
     super.initState();
     currentBalance = widget.balance;
-    availableBalance = 'IDR ${NumberFormat.decimalPattern("id").format(currentBalance)}';
+    availableBalance =
+        'IDR ${NumberFormat.decimalPattern("id").format(currentBalance)}';
   }
 
   void selectBank(Map<String, dynamic> bank) {
@@ -168,24 +170,38 @@ class _WithdrawScreenState extends State<WithdrawScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: currentBalance > 0 &&
-                        _withdrawalController.text.isNotEmpty &&
-                        selectedBank != null
-                    ? () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ConfirmTransactionScreen(
-                              amount: _withdrawalController.text,
-                              bankDetails: selectedBank!,
-                              balance: currentBalance,
+                onPressed: _isNavigatingToConfirm ||
+                        currentBalance <= 0 ||
+                        _withdrawalController.text.isEmpty ||
+                        selectedBank == null
+                    ? null
+                    : () async {
+                        setState(() {
+                          _isNavigatingToConfirm = true;
+                        });
+                        try {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ConfirmTransactionScreen(
+                                amount: _withdrawalController.text,
+                                bankDetails: selectedBank!,
+                                balance: currentBalance,
+                              ),
                             ),
-                          ),
-                        );
-                      }
-                    : null,
+                          );
+                        } finally {
+                          if (mounted) {
+                            setState(() {
+                              _isNavigatingToConfirm = false;
+                            });
+                          }
+                        }
+                      },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: currentBalance > 0 && selectedBank != null
+                  backgroundColor: currentBalance > 0 &&
+                          selectedBank != null &&
+                          !_isNavigatingToConfirm
                       ? DisColors.primary
                       : Colors.grey.shade300,
                   foregroundColor: DisColors.white,

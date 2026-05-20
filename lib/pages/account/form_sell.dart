@@ -28,6 +28,8 @@ class _UploadContentPageState extends State<UploadContentPage> {
 
   String _pendapatan = 'IDR 0';
   String? _imagePath;
+  ScaffoldMessengerState? _scaffoldMessenger;
+  NavigatorState? _navigator;
 
   @override
   void initState() {
@@ -35,6 +37,13 @@ class _UploadContentPageState extends State<UploadContentPage> {
     _imagePath = widget.imagePath;
     _fileNameController.text =
         _imagePath?.split('/').last ?? 'Belum ada gambar dipilih';
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
+    _navigator = Navigator.of(context);
   }
 
   void _updateHargaJual() {
@@ -45,7 +54,7 @@ class _UploadContentPageState extends State<UploadContentPage> {
         _pendapatan = 'IDR ${income.toStringAsFixed(0)}';
       });
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _scaffoldMessenger?.showSnackBar(
         const SnackBar(
           content: Text('Harga jual harus 10.000 atau kurang'),
         ),
@@ -59,7 +68,7 @@ class _UploadContentPageState extends State<UploadContentPage> {
 
   void _uploadPhoto() {
     if (_imagePath == null || _hargaDasarController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      _scaffoldMessenger?.showSnackBar(
         const SnackBar(
           content: Text('Lengkapi semua data sebelum mengunggah.'),
         ),
@@ -80,18 +89,26 @@ class _UploadContentPageState extends State<UploadContentPage> {
   Widget build(BuildContext context) {
     return BlocConsumer<PhotoBloc, PhotoState>(
       listener: (context, state) {
+        if (!mounted) {
+          return;
+        }
+
         if (state is PhotoSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          _scaffoldMessenger?.showSnackBar(
             const SnackBar(content: Text('Foto berhasil diunggah!')),
           );
-          Navigator.pop(context, true);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _navigator?.pop(true);
+          });
         } else if (state is PhotoFailure) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          _scaffoldMessenger?.showSnackBar(
             SnackBar(content: Text('Gagal mengunggah foto: ${state.message}')),
           );
         }
       },
       builder: (context, state) {
+        final isLoading = state is PhotoLoading;
+
         return Scaffold(
           appBar: AppBar(
             title: const Text("Form Sell"),
@@ -226,7 +243,7 @@ class _UploadContentPageState extends State<UploadContentPage> {
                     child: SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: _uploadPhoto,
+                        onPressed: isLoading ? null : _uploadPhoto,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: DisColors.primary,
                           foregroundColor: DisColors.black,
@@ -235,10 +252,21 @@ class _UploadContentPageState extends State<UploadContentPage> {
                             borderRadius: BorderRadius.circular(8.0),
                           ),
                         ),
-                        child: const Text(
-                          'Upload',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.black,
+                                  ),
+                                ),
+                              )
+                            : const Text(
+                                'Upload',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                       ),
                     ),
                   )

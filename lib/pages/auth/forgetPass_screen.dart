@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:dis_app/utils/constants/colors.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:page_transition/page_transition.dart';
 
 class ForgetPasswordScreen extends StatefulWidget {
   @override
@@ -79,10 +78,21 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
 
                         Navigator.push(
                           context,
-                          PageTransition(
-                            type: PageTransitionType.scale,
-                            alignment: Alignment.center,
-                            child: OtpVerificationScreen(),
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    OtpVerificationScreen(),
+                            transitionsBuilder: (context, animation,
+                                secondaryAnimation, child) {
+                              final curvedAnimation = CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutBack,
+                              );
+                              return ScaleTransition(
+                                scale: curvedAnimation,
+                                child: child,
+                              );
+                            },
                           ),
                         );
                       },

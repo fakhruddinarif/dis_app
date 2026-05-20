@@ -27,94 +27,128 @@ class PostFormPhotoScreen extends StatefulWidget {
 class _PostFormPhotoScreenState extends State<PostFormPhotoScreen> {
   final TextEditingController _captionController = TextEditingController();
   final Uuid uuid = Uuid();
+  ScaffoldMessengerState? _scaffoldMessenger;
+  NavigatorState? _navigator;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _scaffoldMessenger = ScaffoldMessenger.maybeOf(context);
+    _navigator = Navigator.of(context);
+  }
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-        create: (context) => PhotoBloc(photoController: PhotoController()),
-        child: Scaffold(
-          appBar: AppBar(
-            title: const Text("Info Konten"),
-            backgroundColor: DisColors.primary,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () {
-                _showConfirmationDialog(context);
-              },
-            ),
-            actions: [
-              BlocBuilder<PhotoBloc, PhotoState>(
-                builder: (context, state) {
-                  return IconButton(
-                    icon: const Icon(Icons.check),
-                    onPressed: () async {
-                      if (widget.imageFile != null) {
-                        final description = _captionController.text.trim();
-                        final name = path.basename(widget.imageFile!.path);
-                        final file = widget.imageFile!;
+      create: (context) => PhotoBloc(photoController: PhotoController()),
+      child: BlocConsumer<PhotoBloc, PhotoState>(
+        listener: (context, state) {
+          if (!mounted) {
+            return;
+          }
 
-                        context.read<PhotoBloc>().add(AddPostPhotoEvent(
-                              description: description,
-                              name: name,
-                              file: file,
-                            ));
-
-                        if (state is PhotoSuccess) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Konten berhasil disimpan!')),
-                          );
-                          Navigator.pushReplacementNamed(context, '/home');
-                        } else if (state is PhotoFailure) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(
-                                    'Gagal menyimpan konten: ${state.message}')),
-                          );
-                        }
-                      }
-                    },
-                  );
-                },
+          if (state is PhotoSuccess) {
+            _scaffoldMessenger?.showSnackBar(
+              const SnackBar(content: Text('Konten berhasil disimpan!')),
+            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _navigator?.pushReplacementNamed('/home');
+            });
+          } else if (state is PhotoFailure) {
+            _scaffoldMessenger?.showSnackBar(
+              SnackBar(
+                content: Text('Gagal menyimpan konten: ${state.message}'),
               ),
-            ],
-          ),
-          body: SingleChildScrollView(
-            // Tambahkan SingleChildScrollView di sini
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (widget.imageFile != null)
-                    Center(
-                      child: Image.file(
-                        File(widget.imageFile!.path),
-                        width: 150,
-                        height: 150,
-                        fit: BoxFit.cover,
+            );
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is PhotoLoading;
+
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text("Info Konten"),
+              backgroundColor: DisColors.primary,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        _showConfirmationDialog(context);
+                      },
+              ),
+              actions: [
+                IconButton(
+                  icon: isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : const Icon(Icons.check),
+                  onPressed: isLoading || widget.imageFile == null
+                      ? null
+                      : () {
+                          final description = _captionController.text.trim();
+                          final name = path.basename(widget.imageFile!.path);
+                          final file = widget.imageFile!;
+
+                          context.read<PhotoBloc>().add(AddPostPhotoEvent(
+                                description: description,
+                                name: name,
+                                file: file,
+                              ));
+                        },
+                ),
+              ],
+            ),
+            body: AbsorbPointer(
+              absorbing: isLoading,
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (widget.imageFile != null)
+                        Center(
+                          child: Image.file(
+                            File(widget.imageFile!.path),
+                            width: 150,
+                            height: 150,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Caption',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Caption',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _captionController,
+                        decoration: const InputDecoration(
+                          hintText:
+                              'Tambahkan caption disini (Maks. 500 karakter)',
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLength: 500,
+                        maxLines: 5,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: _captionController,
-                    decoration: const InputDecoration(
-                      hintText: 'Tambahkan caption disini (Maks. 500 karakter)',
-                      border: OutlineInputBorder(),
-                    ),
-                    maxLength: 500,
-                    maxLines: 5,
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ));
+          );
+        },
+      ),
+    );
   }
 
   void _showConfirmationDialog(BuildContext context) {

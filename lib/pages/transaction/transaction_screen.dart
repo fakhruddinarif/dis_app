@@ -21,6 +21,8 @@ class TransactionScreen extends StatefulWidget {
 }
 
 class _TransactionScreenState extends State<TransactionScreen> {
+  bool _isOpeningTransaction = false;
+
   Map<String, dynamic> data = {
     "pending": {
       "text": "Waiting for payment",
@@ -165,28 +167,45 @@ class _TransactionScreenState extends State<TransactionScreen> {
         locale: "id_ID", symbol: "IDR ", decimalDigits: 0);
 
     return GestureDetector(
-      onTap: () async {
-        print("Transaction ID: ${transaction.id}");
-        final transactionBloc = BlocProvider.of<TransactionBloc>(context);
-        transactionBloc.add(TransactionGetEvent(id: transaction.id));
+      onTap: _isOpeningTransaction
+          ? null
+          : () async {
+              print("Transaction ID: ${transaction.id}");
+              setState(() {
+                _isOpeningTransaction = true;
+              });
+              final transactionBloc = BlocProvider.of<TransactionBloc>(context);
+              transactionBloc.add(TransactionGetEvent(id: transaction.id));
 
-        await for (final state in transactionBloc.stream) {
-          if (state is TransactionGetSuccess) {
-            final transaction = state.data;
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PaymentPage(),
-                settings: RouteSettings(arguments: transaction),
-              ),
-            );
-            break;
-          } else if (state is TransactionFailure) {
-            print("Error fetching transaction");
-            break;
-          }
-        }
-      },
+              try {
+                await for (final state in transactionBloc.stream) {
+                  if (!mounted) {
+                    return;
+                  }
+
+                  if (state is TransactionGetSuccess) {
+                    final transaction = state.data;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PaymentPage(),
+                        settings: RouteSettings(arguments: transaction),
+                      ),
+                    );
+                    break;
+                  } else if (state is TransactionFailure) {
+                    print("Error fetching transaction");
+                    break;
+                  }
+                }
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    _isOpeningTransaction = false;
+                  });
+                }
+              }
+            },
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(

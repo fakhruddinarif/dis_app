@@ -25,17 +25,25 @@ class DisplayPhotoScreen extends StatelessWidget {
       ),
       body: BlocConsumer<DisplayPhotoBloc, DisplayPhotoState>(
         listener: (context, state) {
+          if (!context.mounted) {
+            return;
+          }
+
           if (state is DisplayPhotoSavedState) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ListFaceScreen(
-                  imagePath: state.savedPath,
-                  matchedFaces: matchedFaces,
-                  userId: '',
-                ),
-              ),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ListFaceScreen(
+                      imagePath: state.savedPath,
+                      matchedFaces: matchedFaces,
+                      userId: '',
+                    ),
+                  ),
+                );
+              }
+            });
           } else if (state is DisplayPhotoErrorState) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text('Error: ${state.errorMessage}')),
@@ -43,8 +51,10 @@ class DisplayPhotoScreen extends StatelessWidget {
           }
         },
         builder: (context, state) {
-          if (state is DisplayPhotoSavingState) {
-            return Center(child: CircularProgressIndicator());
+          final isSaving = state is DisplayPhotoSavingState;
+
+          if (isSaving) {
+            return const Center(child: CircularProgressIndicator());
           }
 
           return Column(
@@ -74,10 +84,14 @@ class DisplayPhotoScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton(
-                    onPressed: () {
-                      context.read<DisplayPhotoBloc>().add(RetakePhotoEvent());
-                      Navigator.pop(context);
-                    },
+                    onPressed: isSaving
+                        ? null
+                        : () {
+                            context
+                                .read<DisplayPhotoBloc>()
+                                .add(RetakePhotoEvent());
+                            Navigator.pop(context);
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: DisColors.primary,
                       foregroundColor: DisColors.white,
@@ -90,21 +104,13 @@ class DisplayPhotoScreen extends StatelessWidget {
                     child: Text('Ambil Ulang'),
                   ),
                   ElevatedButton(
-                    onPressed: () {
-                      context.read<DisplayPhotoBloc>().add(
-                            SavePhotoEvent(photoPath: imagePath),
-                          );
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => ListFaceScreen(
-                            imagePath: imagePath,
-                            matchedFaces: matchedFaces,
-                            userId: '',
-                          ),
-                        ),
-                      );
-                    },
+                    onPressed: isSaving
+                        ? null
+                        : () {
+                            context.read<DisplayPhotoBloc>().add(
+                                  SavePhotoEvent(photoPath: imagePath),
+                                );
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: DisColors.primary,
                       foregroundColor: DisColors.white,

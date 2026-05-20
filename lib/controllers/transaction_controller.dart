@@ -1,12 +1,13 @@
-import 'dart:convert';
 import 'package:dis_app/models/transaction_model.dart';
 import 'package:dis_app/utils/http/http_client.dart';
 
 class TransactionController {
   // Create Transaction
-  Future<Map<String, dynamic>> createTransaction(CreateTransactionRequest request) async {
+  Future<Map<String, dynamic>> createTransaction(
+      CreateTransactionRequest request) async {
     try {
-      final response = await DisHttpClient.post('transaction/', request.toJson());
+      final response =
+          await DisHttpClient.post('transaction/', request.toJson());
       if (response['data'] == null) {
         throw response['errors'];
       } else {
@@ -18,7 +19,8 @@ class TransactionController {
   }
 
   // Get Transaction by ID
-  Future<Map<String, dynamic>> getTransaction(GetTransactionRequest request) async {
+  Future<Map<String, dynamic>> getTransaction(
+      GetTransactionRequest request) async {
     try {
       final response = await DisHttpClient.get('transaction/${request.id}');
       if (response['data'] == null) {
@@ -31,11 +33,28 @@ class TransactionController {
     }
   }
 
+  Future<Map<String, dynamic>> getPaymentStatus(
+      GetTransactionRequest request) async {
+    try {
+      final response =
+          await DisHttpClient.get('transaction/${request.id}/payment');
+      if (response['data'] == null) {
+        throw response['errors'];
+      } else {
+        return response['data'];
+      }
+    } catch (e) {
+      throw Exception('Failed to get payment status: $e');
+    }
+  }
+
   // List Transactions
-  Future<Map<String, dynamic>> listByBuyer(ListTransactionRequest request) async {
+  Future<Map<String, dynamic>> listByBuyer(
+      ListTransactionRequest request) async {
     try {
       final queryParams = request.toQueryParams();
-      final response = await DisHttpClient.get('transaction/buyer?$queryParams');
+      final response =
+          await DisHttpClient.get('transaction/buyer?$queryParams');
       if (response['data'] == null) {
         throw response['errors'];
       } else {
@@ -46,10 +65,12 @@ class TransactionController {
     }
   }
 
-  Future<Map<String, dynamic>> listBySeller(ListTransactionRequest request) async {
+  Future<Map<String, dynamic>> listBySeller(
+      ListTransactionRequest request) async {
     try {
       final queryParams = request.toQueryParams();
-      final response = await DisHttpClient.get('transaction/seller?$queryParams');
+      final response =
+          await DisHttpClient.get('transaction/seller?$queryParams');
       if (response['data'] == null) {
         throw response['errors'];
       } else {
@@ -61,9 +82,11 @@ class TransactionController {
   }
 
   // Update Transaction
-  Future<Map<String, dynamic>> updateTransaction(UpdateTransactionRequest request) async {
+  Future<Map<String, dynamic>> updateTransaction(
+      UpdateTransactionRequest request) async {
     try {
-      final response = await DisHttpClient.patch('transaction/${request.id}', request.toJson());
+      final response = await DisHttpClient.patch(
+          'transaction/${request.id}', request.toJson());
       if (response['data'] == null) {
         throw response['errors'];
       } else {
@@ -75,7 +98,8 @@ class TransactionController {
   }
 
   // Delete Transaction
-  Future<Map<String, dynamic>> deleteTransaction(DeleteTransactionRequest request) async {
+  Future<Map<String, dynamic>> deleteTransaction(
+      DeleteTransactionRequest request) async {
     try {
       final response = await DisHttpClient.delete('transaction/${request.id}');
       if (response['data'] == null) {
